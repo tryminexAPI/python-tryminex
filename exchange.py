@@ -182,8 +182,8 @@ class tryminex:
         param['timestamp'] = int(time.time())
         return self.__signed_GET('/api/v1/order/cancle', param, self.timeout)
 
-apiKey = 'dtWvg4aCAKQxViM4Jowut8dTfq48ITWu'
-secret = 'sbdzHh8AB6xuJDXiaMWm7giZYL5exca2'
+apiKey = '123456789'
+secret = '123456789'
 
 tmx = tryminex(apiKey, secret)
 symbol = 'TMX/USDT'
@@ -199,7 +199,7 @@ print(tmx.user_info())
 #print(tmx.accounts_info())
 #print(tmx.currency_account('TMX'))
 #print(tmx.list_orders('TMX/USDT'))
-#print(tmx.list_order('18479a1ce37041ecb0c02bc6ab650972'))
+#print(tmx.list_order('123456789'))
 #print(tmx.fetch_mytrades('TMX/USDT'))
-#print(tmx.create_order(symbol='TMX/USDT', tradeType='BUY', price='0.01', amount='1'))
-#print(tmx.cancel_order('18479a1ce37041ecb0c02bc6ab650972'))
+#print(tmx.create_order(symbol='TMX/USDT', tradeType='BUY', price='0.1', amount='1'))
+#print(tmx.cancel_order('123456789'))
