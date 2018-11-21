@@ -2,7 +2,7 @@ import hashlib
 import time
 import requests
 import hmac
-
+import pandas as pd
 from requests.exceptions import ReadTimeout
 
 class tryminex:
@@ -15,7 +15,6 @@ class tryminex:
     def __transfer_symbol(self, symbol):
         """transfer symbol format"""
         symbol = symbol.split('/')
-        # symbol.reverse()
         symbol = '_'.join(symbol)
         return symbol
 
@@ -27,30 +26,29 @@ class tryminex:
             r.raise_for_status()
         except requests.exceptions.HTTPError as err:
             print(err)
+            return
         if r.status_code == 200:
             return r.json()
 
-    def __signed_GET(self, api_url, params={}, timeout = 5):
+    def __signed_GET(self, api_url, params={}, timeout=5):
         """request a signed url"""
-
         sign_str = ''
         for key in sorted(params.keys()):
             _ = '&' + key + '=' + str(params[key])
             sign_str += _
-
         payload_str = 'GET' + '&' + api_url + sign_str
-        signature = hmac.new(self.secret, payload_str,digestmod=hashlib.sha256).hexdigest()
+        signature = hmac.new(bytes(self.secret, encoding='utf-8'), bytes(payload_str, encoding='utf-8'), digestmod=hashlib.sha256).hexdigest()
         params['sign'] = signature
-
         url = self.__base_url + api_url
         try:
             r = requests.get(url, params=params, timeout=timeout)
             r.raise_for_status()
         except ReadTimeout:
-            print "get timeout"
+            print("get timeout")
+            return
         except requests.exceptions.HTTPError as err:
             print(err)
-            print(r.text)
+            return
         if r.status_code == 200:
             return r.json()
 
@@ -61,19 +59,18 @@ class tryminex:
             _ = '&' + key + '=' + str(params[key])
             sign_str += _
         payload_str = 'POST' + '&' + api_url + sign_str
-        signature = hmac.new(self.secret, payload_str,digestmod=hashlib.sha256).hexdigest()
+        signature = hmac.new(bytes(self.secret, encoding='utf-8'), bytes(payload_str, encoding='utf-8'), digestmod=hashlib.sha256).hexdigest()
         params['sign'] = signature
-
         url = self.__base_url + api_url
         try:
             r = requests.post(url,data=params, timeout=timeout)
             r.raise_for_status()
         except ReadTimeout:
-            print "post timeout"
+            print("post timeout")
+            return
         except requests.exceptions.HTTPError as err:
             print(err)
-            print(r.text)
-
+            return
         if r.status_code == 200:
             return r.json()
 
@@ -140,7 +137,7 @@ class tryminex:
         param['appid'] = self.apiKey
         param['nonce'] = int(time.time() * 1000)
         param['timestamp'] = int(time.time())
-        return self.__signed_GET('/api/v1/processing-orders', param)
+        return self.__signed_GET('/api/v1/processing-orders', param, self.timeout)
 
     def list_order(self, orderNo):
         """Get information of specified order"""
@@ -163,13 +160,13 @@ class tryminex:
     def create_order(self, symbol, tradeType, price, amount):
         """Create a Sell/Buy order."""
         param = {
-            'symbol':self.__transfer_symbol(symbol),
-            'tradeType':tradeType,
-            'price':price,
-            'amount':amount,
-            'appid':self.apiKey,
-            'nonce':int(time.time() * 1000),
-            'timestamp':int(time.time())
+            'symbol': self.__transfer_symbol(symbol),
+            'tradeType': tradeType,  #BUY/SELL
+            'price': price,
+            'amount': amount,
+            'appid': self.apiKey,
+            'nonce': int(time.time() * 1000),
+            'timestamp': int(time.time())
         }
         return self.__sign_POST('/api/v1/order/create', param, self.timeout)
 
@@ -182,24 +179,15 @@ class tryminex:
         param['timestamp'] = int(time.time())
         return self.__signed_GET('/api/v1/order/cancle', param, self.timeout)
 
-apiKey = '123456789'
-secret = '123456789'
-
-tmx = tryminex(apiKey, secret)
-symbol = 'TMX/USDT'
-#print(tmx.load_markets())
-#print(tmx.fetch_depths(symbol))
-#print(tmx.fetch_tickers(symbol))
-#print(tmx.fetch_markets_tickers())
-#print(tmx.fetch_kline(symbol, 30))
-#print(tmx.fetch_ohlcv(symbol, 1))
-print(tmx.fetch_timestamp())
-
-print(tmx.user_info())
-#print(tmx.accounts_info())
-#print(tmx.currency_account('TMX'))
-#print(tmx.list_orders('TMX/USDT'))
-#print(tmx.list_order('123456789'))
-#print(tmx.fetch_mytrades('TMX/USDT'))
-#print(tmx.create_order(symbol='TMX/USDT', tradeType='BUY', price='0.1', amount='1'))
-#print(tmx.cancel_order('123456789'))
+    def cancel_all(self, symbol):
+        x = self.list_orders(symbol)['data']
+        df = pd.DataFrame(x)
+        if len(df) > 0:
+            order_list = list(df['orderNo'].values)
+        else:
+            print('No order found!')
+            return None
+        for order in order_list:
+            print(order)
+            self.cancel_order(order)
+        print('All orders have been cancelled!!')
